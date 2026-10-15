@@ -106,3 +106,27 @@ describe("matching: open-ended buckets", () => {
     expect(M.keyFacts("50+ bps").nums.has("50+")).toBe(true);
   });
 });
+
+describe("matching: resolution qualifiers must agree", () => {
+  it("never pairs an emergency/inter-meeting cut with any cut", () => {
+    expect(M.compatible("Fed emergency rate cut before 2027?", "Will the Federal Reserve cut rates before 2027? Cuts")).toBe(false);
+    expect(M.compatible("Inter-meeting Fed cut in 2026?", "Fed cut in 2026?")).toBe(false);
+    expect(M.compatible("Fed emergency rate cut before 2027?", "Emergency Fed rate cut before 2027")).toBe(true);
+  });
+  it("deadline (before/by) vs period (in/during) vs single meeting differ", () => {
+    expect(M.compatible("Fed rate cut before 2027?", "Fed rate cut in 2027?")).toBe(false);
+    expect(M.compatible("Fed rate hike by December 2026?", "Fed rate hike at the December 2026 meeting?")).toBe(false);
+    expect(M.compatible("Fed rate cut in 2026?", "Fed rate cut during 2026?")).toBe(true);
+    expect(M.compatible("Fed rate cut by December 2026?", "Fed cut rates before December 2026?")).toBe(true);
+  });
+  it("a month-specific deadline is not a year boundary", () => {
+    expect(M.compatible("Fed rate cut by January 2027 meeting? January 2027 Meeting", "Will the Federal Reserve cut rates before 2027? Cuts")).toBe(false);
+  });
+  it("negated questions never pair with positive ones", () => {
+    expect(M.compatible("Will no Fed rate cuts happen in 2026?", "Fed rate cut in 2026?")).toBe(false);
+    expect(M.compatible("Will no Fed rate cuts happen in 2026?", "Zero Fed rate cuts in 2026?")).toBe(true);
+  });
+  it("'by 25 bps' magnitude is not a deadline", () => {
+    expect(M.keyFacts("Fed decrease rates by 25 bps after the October 2026 meeting").timeframe).toBe("point");
+  });
+});

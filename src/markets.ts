@@ -201,15 +201,26 @@ export function keyFacts(text: string) {
   const comparator = /\b(between|range|to \$?\d)/.test(t) ? "range" : /\b(above|over|greater|more than|at least|or more|higher|exceed)/.test(t) ? "above" : /\b(below|under|less than|or less|lower)/.test(t) ? "below" : /\b(exactly|be \$?\d)/.test(t) ? "exact" : "none";
   const toks = tokens(text);
   const action = toks.has("hold") ? "hold" : toks.has("cut") && !toks.has("hike") ? "cut" : toks.has("hike") && !toks.has("cut") ? "hike" : "none";
-  return { nums, months, comparator, action };
+  // Resolution qualifiers: these change what resolves YES, so they must agree between venues.
+  const emergency = /\b(emergency|inter-?meeting|unscheduled|surprise)\b/.test(t);
+  const negated = /\b(no|not|zero|without|none|never)\b/.test(t);
+  const MON = "(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*";
+  const timeframe = new RegExp(`\\b(before|prior to|until|no later than|by (?:the )?(?:end of|${MON}|\\d{4}|q[1-4]|year-end)|by end)`).test(t) ? "deadline"
+    : new RegExp(`\\b(in|during|throughout) (?:${MON} )?(?:\\d{4}|this year|q[1-4])\\b`).test(t) ? "period"
+    : /\b(at|after|following) (?:the |their |its )?(?:[a-z]+ )?(?:\d{4} )?(?:fomc )?meeting\b|\bon (?:[a-z]+ )?\d/.test(t) ? "point" : "none";
+  return { nums, months, comparator, action, emergency, negated, timeframe };
 }
 const sameSet = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every(x => b.has(x));
 export function compatible(a: string, b: string) {
   const A = keyFacts(a), B = keyFacts(b);
   if (!sameSet(A.nums, B.nums)) return false;
-  if (A.months.size && B.months.size && !sameSet(A.months, B.months)) return false;
+  // Months must match; a dated deadline ("by January 2027 meeting") is not the same as a year boundary ("before 2027").
+  if (!sameSet(A.months, B.months)) return false;
   if (A.comparator !== "none" && B.comparator !== "none" && A.comparator !== B.comparator) return false;
   if (A.action !== "none" && B.action !== "none" && A.action !== B.action) return false;
+  if (A.emergency !== B.emergency) return false;
+  if (A.negated !== B.negated) return false;
+  if (A.timeframe !== "none" && B.timeframe !== "none" && A.timeframe !== B.timeframe) return false;
   return true;
 }
 
