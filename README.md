@@ -1,5 +1,8 @@
 # Prediction Market Odds (MCP server)
 
+**Live MCP URL (Streamable HTTP, no auth):** `https://prediction-odds-mcp.vercel.app/mcp`  
+Health check: `https://prediction-odds-mcp.vercel.app/health`
+
 An MCP server that gives Grok Bot (or any MCP client) live, read-only odds from **Polymarket** and **Kalshi**:
 
 - Search markets
